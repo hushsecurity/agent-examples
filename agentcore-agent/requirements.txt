@@ -1,0 +1,4 @@
+bedrock-agentcore>=1.23
+strands-agents>=1.57
+boto3>=1.43
+httpx

@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+httpx
+boto3
+azure-ai-projects>=2.8,<3
+azure-identity

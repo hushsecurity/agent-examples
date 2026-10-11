@@ -17,6 +17,9 @@ side, the platform side and the agent's code.
 | [`agentcore-agent`](agentcore-agent) | Amazon Bedrock AgentCore | Sends its AWS token as the Bearer | ✓ Token exchange |
 | [`client-secret-agent`](client-secret-agent) | Anywhere, with no workload identity | Exchanges an id and secret for a Hush token | |
 
+To try the gateway with real LLM agents, interactively, see the
+[`demo`](demo): AgentCore and Foundry agents, as themselves and for you.
+
 ## Before you start
 
 Every example needs:

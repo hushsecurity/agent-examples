@@ -1,0 +1,8 @@
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+__pycache__/
+.user-token
+.bedrock_agentcore.yaml
+.bedrock_agentcore/

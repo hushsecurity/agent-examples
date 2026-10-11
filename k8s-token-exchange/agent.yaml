@@ -1,0 +1,48 @@
+# The agent, as a Job that runs once. Set the two values marked CHANGE ME (see
+# the README), then: kubectl apply -k .
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: token-exchange-agent
+  namespace: hush-agents
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: token-exchange-agent
+  namespace: hush-agents
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 3600
+  template:
+    spec:
+      serviceAccountName: token-exchange-agent
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      containers:
+        - name: agent
+          image: python:3.12-slim
+          command: ["python", "/app/agent.py"]
+          env:
+            - name: HUSH_GATEWAY_URL
+              value: https://gateway.example.com/mcp # CHANGE ME
+            - name: PYTHONUNBUFFERED
+              value: "1"
+          volumeMounts:
+            - name: app
+              mountPath: /app
+            - name: hush-token
+              mountPath: /var/run/secrets/hush
+              readOnly: true
+      volumes:
+        - name: app
+          configMap:
+            name: token-exchange-agent
+        - name: hush-token
+          projected:
+            sources:
+              - serviceAccountToken:
+                  # The gateway's issuer (see the README). CHANGE ME
+                  audience: https://api.<region>.hush-security.com/v1/deployments/<deployment-id>/agents
+                  expirationSeconds: 3600
+                  path: token

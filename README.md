@@ -9,6 +9,7 @@ side, the platform side and the agent's code.
 
 | Example | The agent runs on | Signs in with |
 | ------- | ----------------- | ------------- |
+| [`k8s-direct-bearer`](k8s-direct-bearer) | Kubernetes | Its service-account token, sent to the gateway as the Bearer |
 
 ## The basics
 

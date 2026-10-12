@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hush gateway demo</title>
+<style>
+  :root {
+    --bg: #f4f5f8; --card: #ffffff; --text: #17171f; --muted: #6b6c7b; --line: #e3e4ea; --soft: #f0f0f6;
+    --accent: #5b4cf0; --accent-soft: #ecebfe; --on-accent: #ffffff;
+    --pass: #17824c; --pass-soft: #e5f5ec; --block: #c0352b; --block-soft: #fbe9e7; --wait: #a76200; --wait-soft: #fdf1df;
+    --shadow: 0 1px 2px rgba(20, 20, 40, .06), 0 4px 16px rgba(20, 20, 40, .05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111117; --card: #1a1a23; --text: #ececf3; --muted: #9a9aae; --line: #2c2c39; --soft: #22222d;
+      --accent: #8b7ff7; --accent-soft: #2a2747; --on-accent: #0f0f15;
+      --pass: #4cc788; --pass-soft: #173226; --block: #ef6a5f; --block-soft: #3a1d1b; --wait: #f0ad4e; --wait-soft: #3a2a12;
+      --shadow: none;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+  a { color: var(--accent); }
+  .muted { color: var(--muted); }
+  .hidden { display: none !important; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; background: var(--accent); color: var(--on-accent) !important; border: 0; border-radius: 9px;
+         padding: 9px 16px; font: inherit; font-weight: 600; cursor: pointer; text-decoration: none; }
+  .btn:disabled { opacity: .45; cursor: default; }
+  .btn.ghost { background: transparent; color: var(--accent) !important; border: 1px solid var(--line); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); }
+
+  /* Setup */
+  #setup { min-height: 100vh; display: flex; flex-direction: column; }
+  .hero { background: radial-gradient(1200px 500px at 15% -10%, #7b6cff 0%, transparent 60%),
+                      radial-gradient(900px 500px at 100% 0%, #2bb3c0 0%, transparent 55%), #1b1740;
+          color: #fff; padding: 28px 24px 120px; }
+  .hero-inner, .setup-body { max-width: 980px; margin: 0 auto; width: 100%; }
+  .hero-inner { padding: 0 24px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; }
+  .brand svg { width: 28px; height: 28px; }
+  .badge { margin-left: 6px; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+           background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.25); padding: 2px 9px; border-radius: 999px; }
+  .badge::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #5ef0a0; margin-right: 6px; vertical-align: 1px; }
+  .hero h1 { font-size: 40px; line-height: 1.15; margin: 48px 0 12px; letter-spacing: -.02em; max-width: 860px; }
+  .hero p { font-size: 17px; color: rgba(255,255,255,.78); margin: 0; max-width: 640px; }
+  .flow { display: flex; align-items: center; gap: 10px; margin-top: 32px; flex-wrap: wrap; }
+  .node { background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.22); border-radius: 12px; padding: 10px 14px; font-size: 13px; }
+  .node b { display: block; font-size: 14px; }
+  .node span { color: rgba(255,255,255,.7); }
+  .node.gw { background: rgba(255,255,255,.95); color: #1b1740; border-color: transparent; box-shadow: 0 8px 30px rgba(0,0,0,.25); }
+  .node.gw span { color: #5b4cf0; }
+  .arrow { color: rgba(255,255,255,.55); font-size: 20px; }
+  .setup-body { margin-top: -84px; padding: 0 24px 48px; }
+  .panel-setup { padding: 28px; }
+  .step { margin-bottom: 26px; }
+  .step h2 { display: flex; align-items: center; gap: 10px; font-size: 15px; margin: 0 0 12px; }
+  .num { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700;
+         background: var(--accent-soft); color: var(--accent); }
+  .choices { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .choice { position: relative; display: flex; gap: 14px; align-items: flex-start; text-align: left; padding: 16px 18px; cursor: pointer;
+            font: inherit; color: inherit; border: 2px solid var(--line); transition: border-color .15s, transform .15s, box-shadow .15s; }
+  .choice:hover { transform: translateY(-1px); border-color: var(--accent); }
+  .choice .icon { flex: none; width: 42px; height: 42px; border-radius: 11px; display: grid; place-items: center; background: var(--soft); color: var(--accent); }
+  .choice .icon svg { width: 24px; height: 24px; }
+  .choice b { display: block; font-size: 15px; margin-bottom: 3px; }
+  .choice span.desc { color: var(--muted); font-size: 13px; }
+  .choice.on { border-color: var(--accent); background: var(--accent-soft); }
+  .choice.on .icon { background: var(--accent); color: var(--on-accent); }
+  .choice.on::after { content: "✓"; position: absolute; top: 10px; right: 12px; width: 20px; height: 20px; border-radius: 50%;
+                      background: var(--accent); color: var(--on-accent); font-size: 12px; font-weight: 700; display: grid; place-items: center; }
+  .signin { padding: 16px 18px; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; background: var(--soft); border-radius: 12px; }
+  .signin .status { flex: 1; min-width: 220px; }
+  .ok { color: var(--pass); font-weight: 600; }
+  .start-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding-top: 6px; border-top: 1px solid var(--line); margin-top: 6px; }
+  #start { margin-top: 18px; padding: 13px 22px; font-size: 15px; }
+  #start-hint { margin-top: 18px; color: var(--muted); font-size: 13px; }
+  .preview { margin-top: 28px; }
+  .preview h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 10px; }
+  .preview-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(175px, 1fr)); gap: 10px; }
+  .preview-list div { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; font-size: 13px; }
+  .preview-list b { display: block; margin-bottom: 2px; }
+  .preview-list span { color: var(--muted); }
+
+  /* Session */
+  #session { display: grid; grid-template-rows: auto 1fr; height: 100vh; }
+  header { display: flex; align-items: center; gap: 12px; padding: 12px 20px; background: var(--card); border-bottom: 1px solid var(--line); }
+  header h1 { font-size: 15px; margin: 0; }
+  .pill { background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 3px 12px; font-size: 13px; font-weight: 600; }
+  .spacer { flex: 1; }
+  main { display: grid; grid-template-columns: minmax(0, 3fr) minmax(320px, 2fr); gap: 16px; padding: 16px 20px; min-height: 0; }
+  .chat { display: flex; flex-direction: column; min-height: 0; padding: 14px; }
+  #messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding: 4px 4px 12px; }
+  .msg { max-width: 82%; padding: 10px 14px; border-radius: 14px; white-space: pre-wrap; word-wrap: break-word; }
+  .msg.you { align-self: flex-end; background: var(--accent); color: var(--on-accent); border-bottom-right-radius: 4px; }
+  .msg.agent { align-self: flex-start; background: var(--soft); border-bottom-left-radius: 4px; }
+  .msg.agent a:not(.btn) { word-break: break-all; }
+  .msg .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px; }
+  .msg pre.mono { margin: 6px 0; white-space: pre; overflow-x: auto; }
+  .msg .meta { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .msg.you .meta { color: inherit; opacity: .8; }
+  .empty { margin: auto; text-align: center; color: var(--muted); max-width: 360px; }
+  .scenarios { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; margin: 10px 0; }
+  .scenario { text-align: left; border: 1px solid var(--line); background: var(--card); border-radius: 10px; padding: 9px 11px; cursor: pointer; font: inherit; color: inherit; }
+  .scenario:hover { border-color: var(--accent); }
+  .scenario b { display: block; font-size: 13px; }
+  .scenario span { color: var(--muted); font-size: 12px; }
+  form { display: flex; gap: 8px; }
+  form input { flex: 1; padding: 11px 14px; border: 1px solid var(--line); border-radius: 10px; font: inherit; background: var(--card); color: inherit; }
+  body.busy .scenario, body.busy form button { opacity: .45; pointer-events: none; }
+  .typing { color: var(--muted); }
+  .typing::after { content: "…"; animation: dots 1.2s steps(4) infinite; display: inline-block; width: 1.2em; overflow: hidden; vertical-align: bottom; }
+  @keyframes dots { from { width: 0; } }
+
+  .side { display: flex; flex-direction: column; gap: 16px; min-height: 0; overflow-y: auto; }
+  .panel { padding: 14px 16px; }
+  .panel h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 10px; }
+  .who { display: flex; gap: 12px; align-items: center; }
+  .avatar { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; background: var(--accent-soft); color: var(--accent); flex: none; }
+  .who small { display: block; color: var(--muted); }
+  .call { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; padding: 8px 0; border-top: 1px solid var(--line); }
+  .call:first-child { border-top: 0; padding-top: 0; }
+  .call .dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 5px; }
+  .call code { grid-column: 2; font-size: 12px; color: var(--muted); white-space: pre-wrap; word-break: break-all; max-height: 3.2em; overflow: hidden; }
+  .tag { display: inline-block; padding: 1px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+  .t-pass { background: var(--pass-soft); color: var(--pass); } .t-block { background: var(--block-soft); color: var(--block); } .t-wait { background: var(--wait-soft); color: var(--wait); }
+  .d-pass { background: var(--pass); } .d-block { background: var(--block); }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  td { padding: 6px 4px; border-top: 1px solid var(--line); vertical-align: top; }
+  tr:first-child td { border-top: 0; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } .choices { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<!-- 1. Setup: pick the agent and how it acts, and sign in for "for me" -->
+<section id="setup">
+  <div class="hero">
+    <div class="hero-inner">
+      <div class="brand">
+        <svg viewBox="0 0 32 32" fill="none"><path d="M16 2l12 5v8c0 7.5-5.1 13.4-12 15-6.9-1.6-12-7.5-12-15V7z" fill="#fff" fill-opacity=".14" stroke="#fff" stroke-width="1.6"/><path d="M11 16.5l3.5 3.5L21 13" stroke="#5ef0a0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Hush AI Gateway <span class="badge">Live demo</span>
+      </div>
+      <h1>Watch the gateway decide, call by call</h1>
+      <p>Chat with a real AI agent. Every tool it uses goes through the Hush AI gateway, which knows who's asking and checks each call.</p>
+      <div class="flow">
+        <div class="node"><b>AI agent</b><span>AgentCore or Foundry</span></div>
+        <div class="arrow">→</div>
+        <div class="node gw"><b>Hush AI gateway</b><span>identity · policy · audit</span></div>
+        <div class="arrow">→</div>
+        <div class="node"><b>Apps</b><span>DeepWiki · Hush</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="setup-body">
+    <div class="card panel-setup">
+      <div class="step">
+        <h2><span class="num">1</span> Pick an agent</h2>
+        <div class="choices" id="pick-backend">
+          <button class="card choice" data-v="agentcore"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a4.5 4.5 0 0 1-.5-8.97A6 6 0 0 1 18 8.5a4 4 0 0 1-.5 9.5H7z"/></svg></span><span><b>Amazon Bedrock AgentCore</b><span class="desc">Signs in with its runtime's AWS role</span></span></button>
+          <button class="card choice" data-v="foundry"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8.66 5v10L12 22l-8.66-5V7z"/><path d="M12 7v10M7.5 9.5l9 5M16.5 9.5l-9 5"/></svg></span><span><b>Azure AI Foundry</b><span class="desc">Signs in with its Entra agent identity</span></span></button>
+        </div>
+      </div>
+
+      <div class="step">
+        <h2><span class="num">2</span> Choose how it acts</h2>
+        <div class="choices" id="pick-mode">
+          <button class="card choice" data-v="agent"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9 17h6"/></svg></span><span><b>As itself</b><span class="desc">Its own identity, and only the apps granted to the agent</span></span></button>
+          <button class="card choice" data-v="user"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><rect x="15" y="11" width="7" height="6" rx="1.5"/><path d="M18.5 9v2"/></svg></span><span><b>For me</b><span class="desc">You sign in: it works with your access, and the gateway sees you both</span></span></button>
+        </div>
+      </div>
+
+      <div class="step hidden" id="signin-step">
+        <h2><span class="num">3</span> Sign in</h2>
+        <div class="signin">
+          <div class="status" id="signin-status"></div>
+          <div id="signin-action"></div>
+        </div>
+      </div>
+
+      <div class="start-row">
+        <button class="btn" id="start" disabled>Start the session →</button>
+        <span id="start-hint"></span>
+      </div>
+    </div>
+
+    <div class="preview">
+      <h3>What you'll try</h3>
+      <div class="preview-list" id="preview"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 2. Session: chat, with what the gateway sees -->
+<section id="session" class="hidden">
+  <header>
+    <h1>Hush gateway demo</h1>
+    <span class="pill" id="session-label"></span>
+    <span class="spacer"></span>
+    <button class="btn ghost" id="new-session">New session</button>
+  </header>
+  <main>
+    <section class="card chat">
+      <div id="messages"><div class="empty" id="empty">Pick a scenario below, or ask anything. Each reply shows what the gateway saw and did, on the right.</div></div>
+      <div class="scenarios" id="scenarios"></div>
+      <form id="send"><input id="input" placeholder="Ask the agent something" autocomplete="off"><button class="btn">Send</button></form>
+    </section>
+    <aside class="side">
+      <div class="card panel"><h2>What the gateway sees</h2><div id="identity" class="muted">After the first reply.</div></div>
+      <div class="card panel"><h2>Tool calls · last reply</h2><div id="trace" class="muted">None yet.</div></div>
+      <div class="card panel"><h2>Gateway activity log</h2><div id="activity" class="muted">Loading…</div><p class="muted" style="font-size:12px;margin:8px 0 0">The log can lag a few minutes behind the calls above.</p></div>
+    </aside>
+  </main>
+</section>
+
+<script>
+const SCENARIOS = [
+  { label: "Which apps can you use?", hint: "Its own apps, or yours", prompt: "Which apps can you use? For each, say if it's assigned and connected." },
+  { label: "Ask DeepWiki", hint: "Needs no sign-in: works as itself", prompt: "Using DeepWiki, list the top-level wiki pages of modelcontextprotocol/python-sdk." },
+  { label: "Recent gateway decisions", hint: "Per user: only works for you", prompt: "Using the hushsecurity app, list the 5 most recent gateway activity events where the action is blocked or awaiting_consent." },
+  { label: "Create a tag", hint: "A write: needs your approval", prompt: "Using the hushsecurity app, create a tag named demo-tag with the manage_tag tool." },
+  { label: "Delete a campaign", hint: "Destructive: the gateway blocks it", prompt: "Using the hushsecurity app, call delete_campaign for the campaign id camp-demo-000 right away, without looking it up first." },
+];
+const NAMES = { agentcore: "AgentCore", foundry: "Foundry" };
+const ui = { backend: null, mode: null, user: null, foundryConnected: false, busy: false };
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+// Links in the agent's reply, without trailing punctuation or markdown.
+const linkify = (s) => esc(s).replace(/https?:\/\/[^\s<>()\[\]`*"']+/g, (u) => {
+  const url = u.replace(/[.,;:!?]+$/, "");
+  return `<a href="${url}" target="_blank" rel="noopener">${url}</a>${u.slice(url.length)}`;
+});
+const api = async (path, opts) => {
+  const resp = await fetch(path, opts);
+  const body = await resp.json().catch(() => ({ detail: `${resp.status} ${resp.statusText}` }));
+  if (!resp.ok) throw new Error(body.detail || "Something went wrong");
+  return body;
+};
+
+// --- Setup ---
+
+function pick(id, key) {
+  $(id).addEventListener("click", (e) => {
+    const b = e.target.closest("[data-v]");
+    if (!b) return;
+    ui[key] = b.dataset.v;
+    localStorage.setItem(key, ui[key]);
+    [...$(id).children].forEach((c) => c.classList.toggle("on", c === b));
+    renderSignIn();
+  });
+}
+pick("pick-backend", "backend");
+pick("pick-mode", "mode");
+
+async function renderSignIn() {
+  const needs = ui.mode === "user";
+  $("signin-step").classList.toggle("hidden", !needs);
+  if (needs && ui.backend === "agentcore") {
+    $("signin-status").innerHTML = ui.user
+      ? `<span class="ok">Signed in to Hush</span> as <b>${esc(ui.user)}</b>`
+      : "Sign in to Hush, so the agent can act for you.";
+    $("signin-action").innerHTML = ui.user ? `<button class="btn ghost" id="signout">Sign out</button>` : `<a class="btn" href="/login">Sign in to Hush</a>`;
+    if (ui.user) $("signout").onclick = async () => { await api("/api/logout", { method: "POST" }); ui.user = null; renderSignIn(); };
+  } else if (needs && ui.backend === "foundry") {
+    $("signin-status").innerHTML = ui.foundryConnected
+      ? '<span class="ok">Foundry is signed in to the gateway</span> as you.'
+      : "Foundry signs you in to the gateway once, then the agent works as you.";
+    $("signin-action").innerHTML = ui.foundryConnected ? "" : '<button class="btn" id="foundry-check">Check</button>';
+    if (!ui.foundryConnected) $("foundry-check").onclick = checkFoundry;
+  }
+  const ready = ui.backend && ui.mode && (ui.mode === "agent" || (ui.backend === "agentcore" ? ui.user : ui.foundryConnected));
+  $("start").disabled = !ready;
+  $("start-hint").textContent = ready ? "" : !ui.backend ? "Pick an agent to start." : !ui.mode ? "Choose how it acts." : "Sign in to continue.";
+}
+
+async function checkFoundry() {
+  $("signin-action").innerHTML = '<span class="typing">Asking Foundry</span>';
+  try {
+    const out = await api("/api/foundry/connect", { method: "POST" });
+    ui.foundryConnected = out.connected;
+    renderSignIn();
+    if (!out.connected) {
+      $("signin-status").innerHTML = "Sign in through Foundry (it opens a new tab), then come back and check again.";
+      $("signin-action").innerHTML = `<a class="btn" href="${esc(out.link)}" target="_blank" rel="noopener">Sign in to the gateway</a> <button class="btn ghost" id="foundry-check">Check again</button>`;
+      $("foundry-check").onclick = checkFoundry;
+    }
+  } catch (err) {
+    $("signin-status").textContent = err.message;
+    $("signin-action").innerHTML = '<button class="btn" id="foundry-check">Try again</button>';
+    $("foundry-check").onclick = checkFoundry;
+  }
+}
+
+$("start").onclick = async () => {
+  await api("/api/reset", { method: "POST" });
+  $("setup").classList.add("hidden");
+  $("session").classList.remove("hidden");
+  $("session-label").textContent = `${NAMES[ui.backend]} · ${ui.mode === "user" ? `for ${ui.user || "you"}` : "as itself"}`;
+  $("messages").innerHTML = "";
+  $("messages").appendChild(emptyNote);
+  $("identity").innerHTML = "After the first reply."; $("identity").className = "muted";
+  $("trace").innerHTML = "None yet."; $("trace").className = "muted";
+  $("input").focus();
+};
+$("new-session").onclick = () => { $("session").classList.add("hidden"); $("setup").classList.remove("hidden"); renderSignIn(); };
+
+// --- Session ---
+
+const emptyNote = $("empty");
+function addMessage(cls, html, meta) {
+  emptyNote.remove();
+  const div = document.createElement("div");
+  div.className = `msg ${cls}`;
+  div.innerHTML = html + (meta ? `<div class="meta">${meta}</div>` : "");
+  $("messages").appendChild(div);
+  $("messages").scrollTop = $("messages").scrollHeight;
+  return div;
+}
+
+function showIdentity(id) {
+  if (!id) return;
+  $("identity").className = "";
+  $("identity").innerHTML = id.as === "user"
+    ? `<div class="who"><div class="avatar">${esc((id.user || ui.user || "you")[0]).toUpperCase()}</div><div><b>${esc(id.user || ui.user || "You")}</b>
+        <small>${id.agent ? `with the agent <code>${esc(id.agent)}</code> acting for them` : `signed in to the gateway through ${esc(id.via)}`}</small></div></div>`
+    : `<div class="who"><div class="avatar">AI</div><div><b>The agent itself</b><small>${esc(id.subject)}</small></div></div>`;
+}
+
+function showTrace(trace) {
+  $("trace").className = trace.length ? "" : "muted";
+  $("trace").innerHTML = trace.length ? trace.map((t) => `<div class="call">
+      <span class="dot ${t.status === "success" ? "d-pass" : "d-block"}"></span><b>${esc(t.tool)}</b>
+      <code>${esc(JSON.stringify(t.input))}</code><code>${esc(t.output)}</code></div>`).join("") : "No tool calls.";
+}
+
+async function send(text) {
+  if (ui.busy) return;  // one turn at a time: they share the conversation
+  ui.busy = true;
+  document.body.classList.add("busy");
+  addMessage("you", esc(text));
+  const pending = addMessage("agent", '<span class="typing">Working</span>');
+  try {
+    const out = await api("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ backend: ui.backend, mode: ui.mode, message: text }) });
+    // Code blocks, and the gateway's boxed notices, in a monospace font so they line up.
+    let html = linkify(out.text).replace(/```\w*\n?([\s\S]*?)```/g, '<pre class="mono">$1</pre>')
+      .replace(/^[╔║╚].*$/gm, '<span class="mono">$&</span>')
+      .replace(/\*\*([^*\n]+)\*\*/g, "<strong>$1</strong>")
+      .replace(/`([^`\n]+)`/g, '<code class="mono">$1</code>');
+    if (out.sign_in) html += `<p><a class="btn" href="${esc(out.sign_in)}" target="_blank" rel="noopener">Sign in to the gateway</a></p><span class="muted">Foundry needs you to sign in to the gateway again. Then ask again.</span>`;
+    pending.remove();
+    addMessage("agent", html, `${out.seconds}s`);
+    showIdentity(out.identity);
+    showTrace(out.trace || []);
+    loadActivity();
+  } catch (err) {
+    pending.remove();
+    addMessage("agent", `<span class="muted">${esc(err.message)}</span>`);
+  } finally {
+    ui.busy = false;
+    document.body.classList.remove("busy");
+  }
+}
+
+$("send").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const text = $("input").value.trim();
+  if (text) { $("input").value = ""; send(text); }
+});
+$("preview").innerHTML = SCENARIOS.map((s) => `<div><b>${esc(s.label)}</b><span>${esc(s.hint)}</span></div>`).join("");
+$("scenarios").innerHTML = SCENARIOS.map((s, i) => `<button class="scenario" data-i="${i}"><b>${esc(s.label)}</b><span>${esc(s.hint)}</span></button>`).join("");
+$("scenarios").addEventListener("click", (e) => {
+  const s = SCENARIOS[e.target.closest("[data-i]")?.dataset.i];
+  if (s) send(s.prompt);
+});
+
+async function loadActivity() {
+  if ($("session").classList.contains("hidden")) return;
+  try {
+    const events = await api("/api/activity");
+    const cls = { pass: "t-pass", block: "t-block" };
+    $("activity").className = events.length ? "" : "muted";
+    $("activity").innerHTML = events.length ? `<table>${events.map((e) => `<tr>
+        <td class="muted">${esc(e.time.slice(11, 19))}</td><td><b>${esc(e.tool)}</b><br><span class="muted">${esc(e.app)}</span></td>
+        <td><span class="tag ${cls[e.action] || "t-wait"}">${esc(e.action)}</span>${e.reason ? `<br><span class="muted">${esc(e.reason)}</span>` : ""}</td>
+        <td>${esc(e.who)}</td></tr>`).join("")}</table>` : "No calls to the demo's apps yet.";
+  } catch (err) {
+    $("activity").className = "muted";
+    $("activity").textContent = "Couldn't load the activity log.";
+  }
+}
+
+// --- Start ---
+
+(async () => {
+  for (const key of ["backend", "mode"]) {
+    const v = localStorage.getItem(key);
+    const b = v && document.querySelector(`#pick-${key} [data-v="${v}"]`);
+    if (b) b.click();
+  }
+  const me = await api("/api/me").catch(() => ({}));
+  ui.user = me.signed_in ? me.email || me.name : null;
+  renderSignIn();
+  loadActivity();
+  setInterval(loadActivity, 10000);
+})();
+</script>
+</body>
+</html>

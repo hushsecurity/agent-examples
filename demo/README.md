@@ -132,8 +132,9 @@ The app suggests these; each is one click.
 - **Foundry ends a turn when a tool call fails**, including when the gateway
   blocks a call or asks for consent. For consent, the app then asks the agent
   to request it, so you still get the approval link. An approval takes effect
-  with the agent's next token, which Foundry doesn't fetch mid-session: try
-  the approved call with AgentCore.
+  with the agent's next token, which Foundry fetches when its token expires,
+  within about 5 minutes: retry the call then. A failed turn also leaves
+  nothing in Foundry's history, so the app repeats it in your next message.
 - **The activity log can lag the gateway by several minutes**; the tool calls
   panel shows each call at once.
 - **The demo is for one person at a time**, on their own machine: it keeps one

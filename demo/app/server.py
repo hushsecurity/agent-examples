@@ -167,9 +167,13 @@ def chat_agentcore(mode: str, message: str, chat: dict) -> dict:
 
 def chat_foundry(mode: str, message: str, chat: dict) -> dict:
     agent = "hush-demo-for-user" if mode == "user" else "hush-demo-as-agent"
+    # A failed turn leaves nothing in Foundry's history: carry it into this one.
+    sent = message
+    if dropped := chat.get("dropped"):
+        sent = f'(My previous message, "{dropped[0]}", failed: {dropped[1]})\n\n{message}'
     try:
         reply = foundry_openai.responses.create(
-            input=message,
+            input=sent,
             extra_body={"agent_reference": {"name": agent, "type": "agent_reference"}},
             **({"previous_response_id": chat["previous"]} if chat.get("previous") else {}),
         )
@@ -187,12 +191,14 @@ def chat_foundry(mode: str, message: str, chat: dict) -> dict:
         # The gateway's message, without Foundry's wrapping and the model-only guidance.
         detail = re.sub(r"^An error occurred invoking '[^']*': |\s*Troubleshooting guide: \S+$", "", detail)
         if "BLOCKED BY HUSH GATEWAY" in detail:
-            return {"text": detail.split("Policy notice from")[0].strip(), "trace": [], "identity": None}
-        if "401 (Unauthorized)" in detail:
+            detail = detail.split("Policy notice from")[0].strip()
+        elif "401 (Unauthorized)" in detail:
             # The gateway reads consent from the token, and Foundry doesn't refresh it on a 401.
-            detail = ("The gateway needs a fresh token (e.g. after an approval), and Foundry "
-                      "can't refresh it mid-session. Try this one with AgentCore.")
+            detail = ("The gateway needs a fresh token, e.g. after an approval. Foundry gets one "
+                      "when its token expires, within about 5 minutes: try again then.")
+        chat["dropped"] = (message, detail.splitlines()[-1][:300])
         return {"text": detail, "trace": [], "identity": None}
+    chat.pop("dropped", None)
     chat["previous"] = reply.id
     out = {"text": reply.output_text or "", "trace": [], "identity": None}
     for item in reply.output:

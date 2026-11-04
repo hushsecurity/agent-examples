@@ -108,6 +108,34 @@ agentcore invoke '{"prompt": "Using DeepWiki, list the wiki pages of modelcontex
 A call without a token, or with a token for another agent, is refused before
 the agent runs, so the agent no longer works as itself on this runtime.
 
+### Or your identity provider at the door
+
+If your users already sign in to an identity provider (Entra ID, Okta, Ping),
+it can be the runtime's JWT authorizer instead, and the agent exchanges the
+user's token from it the same way: no Hush sign-in, and no change to the
+agent. The provider must be your gateway's identity provider, and its tokens
+for this app must name users Hush knows.
+
+```sh
+terraform -chdir=terraform apply ... -var idp_audience=<your app's audience>
+agentcore configure --entrypoint agent.py --name hush_example_agent \
+  --region us-east-1 --requirements-file requirements.txt --disable-memory --non-interactive \
+  --authorizer-config '{"customJWTAuthorizer": {"discoveryUrl": "<your issuer>/.well-known/openid-configuration", "allowedAudience": ["<your app's audience>"]}}' \
+  --request-header-allowlist Authorization
+agentcore deploy -a hush_example_agent \
+  --env HUSH_GATEWAY_URL=https://<gateway>/mcp --env MODEL_ID=us.anthropic.claude-sonnet-5
+
+agentcore invoke '{"prompt": "Using DeepWiki, list the wiki pages of modelcontextprotocol/python-sdk."}' \
+  -a hush_example_agent --bearer-token "<a user's token for your app>"
+```
+
+With Entra ID, for example, a user's token comes from
+`az account get-access-token --resource <app id> --query accessToken -o tsv`
+(the app exposes a scope, and the Azure CLI is allowed to ask for it). Where
+your provider's tokens name a shared API in `aud` (Okta, PingOne), set
+`user_tokens { clients = [...] }` (the app's client id) in place of
+`audiences`.
+
 ## Good to know
 
 - **As itself, the agent could also exchange its AWS token at Hush** (client
@@ -117,9 +145,12 @@ the agent runs, so the agent no longer works as itself on this runtime.
 - **The gateway's issuer and Hush's token endpoint are discovered from the
   gateway's URL** (`discover()`), the standard MCP way. The issuer is the AWS
   token's audience.
-- **The user's token must be for this agent**: users sign in with `resource`
-  set to the agent's `resource` (Terraform output). The agent needs
-  `acts_for_users`.
+- **The user's token must be for this agent**: with Hush sign-in, users sign
+  in with `resource` set to the agent's `resource` (Terraform output). The
+  agent needs `acts_for_users`.
+- **Limit which users the agent acts for** with `assignment` rules on the
+  service agent (user properties such as `email` or `groups`); without any, it
+  may act for every user.
 - **As itself, the agent can use only apps that need no user's sign-in.**
   Grant it more apps with an assignment rule on `agent.id`.
 - **A `401` from the gateway** usually means the role isn't registered

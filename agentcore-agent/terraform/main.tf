@@ -2,7 +2,7 @@ terraform {
   required_providers {
     hush = {
       source  = "hushsecurity/hush"
-      version = "~> 1.28"
+      version = "~> 1.38"
     }
   }
 }
@@ -20,6 +20,12 @@ variable "role_arn" {
   type        = string
 }
 
+variable "idp_audience" {
+  description = "With your identity provider at AgentCore's door: the app its user tokens are for"
+  type        = string
+  default     = null
+}
+
 # The agent, signing in as its runtime's IAM role. acts_for_users lets it act
 # for users as well.
 resource "hush_service_agent" "example" {
@@ -29,6 +35,14 @@ resource "hush_service_agent" "example" {
   aws_iam_role {
     issuer   = var.aws_issuer
     role_arn = var.role_arn
+  }
+
+  # Accept the user's identity provider token for this app, not only a Hush one.
+  dynamic "user_tokens" {
+    for_each = var.idp_audience == null ? [] : [1]
+    content {
+      audiences = [var.idp_audience]
+    }
   }
 }
 

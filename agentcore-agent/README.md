@@ -81,6 +81,33 @@ the deployment differs.
    app, your front end keeps the user signed in and passes a fresh token with
    each request.
 
+## Check users at AgentCore's door
+
+Anyone who may invoke the runtime (IAM) can still call the agent, as itself
+or with any user's token in the payload. To have AgentCore accept only calls
+that carry a user's token for this agent, make Hush the runtime's JWT
+authorizer: AgentCore checks the token before the agent runs, and passes it
+on as the `Authorization` header.
+
+```sh
+ISSUER=$(curl -s https://<gateway>/.well-known/oauth-protected-resource/mcp \
+  | python3 -c "import json, sys; print(json.load(sys.stdin)['authorization_servers'][0])")
+RESOURCE=$(terraform -chdir=terraform output -raw resource)
+agentcore configure --entrypoint agent.py --name hush_example_agent \
+  --region us-east-1 --requirements-file requirements.txt --disable-memory --non-interactive \
+  --authorizer-config "{\"customJWTAuthorizer\": {\"discoveryUrl\": \"$ISSUER/.well-known/openid-configuration\", \"allowedAudience\": [\"$RESOURCE\"]}}" \
+  --request-header-allowlist Authorization
+agentcore deploy -a hush_example_agent \
+  --env HUSH_GATEWAY_URL=https://<gateway>/mcp --env MODEL_ID=us.anthropic.claude-sonnet-5
+
+python sign_in.py https://<gateway>/mcp "$RESOURCE"
+agentcore invoke '{"prompt": "Using DeepWiki, list the wiki pages of modelcontextprotocol/python-sdk."}' \
+  -a hush_example_agent --bearer-token "$(cat .user-token)"
+```
+
+A call without a token, or with a token for another agent, is refused before
+the agent runs, so the agent no longer works as itself on this runtime.
+
 ## Good to know
 
 - **As itself, the agent could also exchange its AWS token at Hush** (client

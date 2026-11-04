@@ -5,8 +5,10 @@ The agent proves who it is with an AWS token for its runtime's IAM role
 
 - As itself: it sends the AWS token as the Bearer, and the gateway exchanges
   it with Hush.
-- For a user ({"user_token": ...} in the payload): it exchanges the AWS token
-  and the user's Hush token at Hush for a token naming both, and sends that.
+- For a user: it exchanges the AWS token and the user's Hush token at Hush
+  for a token naming both, and sends that. The user's token comes in the
+  Authorization header, which AgentCore passes on when Hush is the runtime's
+  JWT authorizer, or as {"user_token": ...} in the payload.
 """
 
 import functools
@@ -90,9 +92,16 @@ class Bearer(httpx.Auth):
 app = BedrockAgentCoreApp()
 
 
+def bearer(context) -> str | None:
+    """The token in the Authorization header AgentCore passed on, if any."""
+    headers = {k.lower(): v for k, v in (context.request_headers or {}).items()}
+    scheme, _, token = headers.get("authorization", "").partition(" ")
+    return token if scheme.lower() == "bearer" and token else None
+
+
 @app.entrypoint
-def invoke(payload):
-    user_token = payload.get("user_token")
+def invoke(payload, context):
+    user_token = bearer(context) or payload.get("user_token")
     if user_token:
         auth = Bearer(lambda: hush_token_for(user_token))
     else:

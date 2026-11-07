@@ -153,6 +153,8 @@ your provider's tokens name a shared API in `aud` (Okta, PingOne), set
   may act for every user.
 - **As itself, the agent can use only apps that need no user's sign-in.**
   Grant it more apps with an assignment rule on `agent.id`.
+- **Acting for a user, the agent can use an app that names it and admits
+  that user.** The example's DeepWiki admits every user (`assign_all`).
 - **A `401` from the gateway** usually means the role isn't registered
   (`role_arn` and `aws_issuer` must match). **`AccessDenied` from STS** means
   federation isn't enabled, or the role isn't allowed

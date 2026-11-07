@@ -91,6 +91,8 @@ pod ──(Bearer: Hush token)──▶ gateway
   `acts_for_users`.
 - **As itself, the agent can use only apps that need no user's sign-in.**
   Grant it more apps with an assignment rule on `agent.id`.
+- **Acting for a user, the agent can use an app that names it and admits
+  that user.** The example's DeepWiki admits every user (`assign_all`).
 - **`Hush refused (401)`** usually means the audience is wrong, the identity
   isn't registered, or the cluster's issuer isn't public. **`Hush refused
   (400): invalid subject_token`** means the user's token expired or is for

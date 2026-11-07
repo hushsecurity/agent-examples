@@ -83,6 +83,8 @@ agent ──(Bearer: Entra token)──▶ gateway ──(exchange)──▶ Hus
   (`agent_token_for_user()`).
 - **In an app, the user's token comes from your front end's sign-in**; the
   example takes it from the Azure CLI.
+- **Acting for a user, the agent can use an app that names it and admits
+  that user.** The example's DeepWiki admits every user (`assign_all`).
 - **Use a federated credential for the blueprint** (e.g. a managed identity)
   instead of a secret, and **keep the gateway's API for Hush only**: anything
   that receives its tokens could replay them.

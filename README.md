@@ -66,7 +66,9 @@ Every example needs:
   (RFC 8693 token exchange). Either way, the service agent needs
   `acts_for_users`.
 - Apps are granted to a service agent with an assignment rule on its id.
-  Assigning an app to all users does not cover service agents.
+  Assigning an app to all users does not cover service agents. Acting for a
+  user, the agent needs both: the rule on its id, and the app admitting that
+  user (a user rule, or all users).
 
 ## License
 

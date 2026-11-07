@@ -57,11 +57,13 @@ resource "hush_custom_mcp_application" "deepwiki" {
   }
 }
 
-# DeepWiki on the gateway, granted to the agent.
+# DeepWiki on the gateway, granted to the agent. Acting for a user, the agent
+# also needs the app to admit that user: here, every user (assign_all).
 resource "hush_mcp_application" "deepwiki" {
   app_catalog_id = hush_custom_mcp_application.deepwiki.app_catalog_id
   display_name   = hush_custom_mcp_application.deepwiki.display_name
   deployment_ids = [var.deployment_id]
+  assign_all     = true
 
   assignment {
     condition {

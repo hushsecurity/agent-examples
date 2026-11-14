@@ -2,7 +2,7 @@ terraform {
   required_providers {
     hush = {
       source  = "hushsecurity/hush"
-      version = "~> 1.38"
+      version = "~> 1.40"
     }
   }
 }
@@ -27,10 +27,12 @@ variable "idp_audience" {
 }
 
 # The agent, signing in as its runtime's IAM role. acts_for_users lets it act
-# for users as well.
+# for users as well, and user_session_lifetime for up to 4 hours after the
+# user's token expires.
 resource "hush_service_agent" "example" {
-  name           = "agentcore-agent"
-  acts_for_users = true
+  name                  = "agentcore-agent"
+  acts_for_users        = true
+  user_session_lifetime = 14400
 
   aws_iam_role {
     issuer   = var.aws_issuer

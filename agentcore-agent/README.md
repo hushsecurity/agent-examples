@@ -136,6 +136,20 @@ your provider's tokens name a shared API in `aud` (Okta, PingOne), set
 `user_tokens { clients = [...] }` (the app's client id) in place of
 `audiences`.
 
+## Long-running work
+
+A user's token expires (an Entra token after about an hour), and with it the
+agent's ability to act for them. For work that runs longer, the example sets
+`user_session_lifetime` on the agent (here 4 hours, up to 24): exchanging the
+user's token then also returns a refresh token, and the agent gets new Hush
+tokens with it and its AWS token, without the user's token
+(`acting_for()`). Every refresh checks again that the agent may act for the
+user; turning the setting off ends the agent's sessions.
+
+After the first exchange Hush no longer asks your identity provider, so a user
+disabled there keeps being served until Hush learns it (SCIM) or you remove
+them from the agent's assignment, at most for the lifetime.
+
 ## Good to know
 
 - **As itself, the agent could also exchange its AWS token at Hush** (client

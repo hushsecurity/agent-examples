@@ -8,7 +8,9 @@ The agent proves who it is with an AWS token for its runtime's IAM role
 - For a user: it exchanges the AWS token and the user's Hush token at Hush
   for a token naming both, and sends that. The user's token comes in the
   Authorization header, which AgentCore passes on when Hush is the runtime's
-  JWT authorizer, or as {"user_token": ...} in the payload.
+  JWT authorizer, or as {"user_token": ...} in the payload. With
+  user_session_lifetime set on the agent, Hush also returns a refresh token,
+  and the agent keeps acting for the user after the user's token expires.
 """
 
 import functools
@@ -53,23 +55,38 @@ def aws_token() -> tuple[str, int]:
     return resp["WebIdentityToken"], 300
 
 
-def hush_token_for(user_token: str) -> tuple[str, int]:
-    """A Hush token for the agent acting for the user of `user_token`
-    (RFC 8693 token exchange; the agent authenticates with its AWS token)."""
-    resp = httpx.post(
-        discover()[1],
-        data={
-            "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
-            "subject_token": user_token,
-            "subject_token_type": "urn:ietf:params:oauth:token-type:access_token",
-            "client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
-            "client_assertion": aws_token()[0],
-        },
-    )
-    if resp.status_code != 200:
-        raise RuntimeError(f"Hush refused ({resp.status_code}): {resp.text[:300]}")
-    body = resp.json()
-    return body["access_token"], body["expires_in"]
+def acting_for(user_token: str):
+    """Gets Hush tokens for the agent acting for the user of `user_token`: by
+    RFC 8693 token exchange, then with the refresh token Hush returns when the
+    agent keeps acting for users. Either way the agent authenticates with its
+    AWS token."""
+    session = {}
+
+    def get_token() -> tuple[str, int]:
+        if "refresh_token" in session:
+            grant = {"grant_type": "refresh_token", "refresh_token": session["refresh_token"]}
+        else:
+            grant = {
+                "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+                "subject_token": user_token,
+                "subject_token_type": "urn:ietf:params:oauth:token-type:access_token",
+            }
+        resp = httpx.post(
+            discover()[1],
+            data={
+                **grant,
+                "client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+                "client_assertion": aws_token()[0],
+            },
+        )
+        if resp.status_code != 200:
+            raise RuntimeError(f"Hush refused ({resp.status_code}): {resp.text[:300]}")
+        body = resp.json()
+        if body.get("refresh_token"):
+            session["refresh_token"] = body["refresh_token"]
+        return body["access_token"], body["expires_in"]
+
+    return get_token
 
 
 class Bearer(httpx.Auth):
@@ -103,7 +120,7 @@ def bearer(context) -> str | None:
 def invoke(payload, context):
     user_token = bearer(context) or payload.get("user_token")
     if user_token:
-        auth = Bearer(lambda: hush_token_for(user_token))
+        auth = Bearer(acting_for(user_token))
     else:
         auth = Bearer(aws_token)
 

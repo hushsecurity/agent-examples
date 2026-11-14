@@ -14,7 +14,7 @@ side, the platform side and the agent's code.
 | [`entra-agent`](entra-agent) | Anywhere (an Entra agent identity) | Sends its Entra token as the Bearer | ✓ Entra on-behalf-of token |
 | [`foundry-agent`](foundry-agent) | Azure AI Foundry (managed) | Foundry sends the agent identity's token as the Bearer, with no token code | |
 | [`azure-managed-identity`](azure-managed-identity) | Azure compute (VM, Container Apps, …) | Sends its managed identity's token as the Bearer | |
-| [`agentcore-agent`](agentcore-agent) | Amazon Bedrock AgentCore | Sends its AWS token as the Bearer | ✓ Token exchange |
+| [`agentcore-agent`](agentcore-agent) | Amazon Bedrock AgentCore | Sends its AWS token as the Bearer | ✓ Token exchange, also past the user's token |
 | [`client-secret-agent`](client-secret-agent) | Anywhere, with no workload identity | Exchanges an id and secret for a Hush token | |
 
 ## Before you start

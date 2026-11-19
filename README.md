@@ -14,8 +14,9 @@ side, the platform side and the agent's code.
 | [`entra-agent`](entra-agent) | Anywhere (an Entra agent identity) | Sends its Entra token as the Bearer | ✓ Entra on-behalf-of token |
 | [`foundry-agent`](foundry-agent) | Azure AI Foundry (managed) | Foundry sends the agent identity's token as the Bearer, with no token code | |
 | [`azure-managed-identity`](azure-managed-identity) | Azure compute (VM, Container Apps, …) | Sends its managed identity's token as the Bearer | |
-| [`agentcore-agent`](agentcore-agent) | Amazon Bedrock AgentCore | Sends its AWS token as the Bearer | ✓ Token exchange, also past the user's token |
+| [`agentcore-agent`](agentcore-agent) | Amazon Bedrock AgentCore | Sends its AWS token as the Bearer | ✓ Token exchange, of a Hush or identity provider token, also past the user's token |
 | [`client-secret-agent`](client-secret-agent) | Anywhere, with no workload identity | Exchanges an id and secret for a Hush token | |
+| [`hand-off-agents`](hand-off-agents) | Anywhere (two agents) | One agent hands the user off to another, which calls the gateway | ✓ Hand-off between agents |
 
 ## Before you start
 
@@ -66,6 +67,10 @@ Every example needs:
   Assigning an app to all users does not cover service agents. Acting for a
   user, the agent needs both: the rule on its id, and the app admitting that
   user (a user rule, or all users).
+- **Handing off.** An agent acting for a user can pass the user on to another
+  agent: it exchanges its token with `resource` set to the other agent's
+  `resource`, and the other agent exchanges what it gets (see
+  [`hand-off-agents`](hand-off-agents)).
 
 ## License
 

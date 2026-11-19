@@ -102,7 +102,7 @@ async def main():
             found = await gateway.call_tool(
                 "hush_search_tools", {"app": DEEPWIKI_APP, "query": "read_wiki_structure"}
             )
-            tool = json.loads(found.content[0].text)[0]["name"]
+            tool = json.loads(found.content[0].text)["tools"][0]["name"]
             result = await gateway.call_tool(
                 "hush_call_tool",
                 {"name": tool, "arguments": {"repoName": "modelcontextprotocol/python-sdk"}},

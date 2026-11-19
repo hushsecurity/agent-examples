@@ -17,6 +17,7 @@ side, the platform side and the agent's code.
 | [`agentcore-agent`](agentcore-agent) | Amazon Bedrock AgentCore | Sends its AWS token as the Bearer | ✓ Token exchange, of a Hush or identity provider token, also past the user's token |
 | [`client-secret-agent`](client-secret-agent) | Anywhere, with no workload identity | Exchanges an id and secret for a Hush token | |
 | [`hand-off-agents`](hand-off-agents) | Anywhere (two agents) | One agent hands the user off to another, which calls the gateway | ✓ Hand-off between agents |
+| [`your-api`](your-api) | Anywhere | Gets a Hush token for your own API, which checks it | ✓ Token exchange |
 
 ## Before you start
 
@@ -71,6 +72,9 @@ Every example needs:
   agent: it exchanges its token with `resource` set to the other agent's
   `resource`, and the other agent exchanges what it gets (see
   [`hand-off-agents`](hand-off-agents)).
+- **Your own APIs.** Beyond the gateway, Hush issues agents tokens for your
+  own APIs (resource servers), which your API or its gateway checks (see
+  [`your-api`](your-api)).
 
 ## License
 

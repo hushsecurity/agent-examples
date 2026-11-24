@@ -15,6 +15,7 @@ side, the platform side and the agent's code.
 | [`foundry-agent`](foundry-agent) | Azure AI Foundry (managed) | Foundry sends the agent identity's token as the Bearer, with no token code | |
 | [`azure-managed-identity`](azure-managed-identity) | Azure compute (VM, Container Apps, …) | Sends its managed identity's token as the Bearer | |
 | [`agentcore-agent`](agentcore-agent) | Amazon Bedrock AgentCore | Sends its AWS token as the Bearer | ✓ Token exchange, of a Hush or identity provider token, also past the user's token |
+| [`agentcore-outbound-auth`](agentcore-outbound-auth) | Amazon Bedrock AgentCore | AgentCore Identity gets its Hush token (outbound auth), with no token code | ✓ Token exchange by AgentCore |
 | [`client-secret-agent`](client-secret-agent) | Anywhere, with no workload identity | Exchanges an id and secret for a Hush token | |
 | [`hand-off-agents`](hand-off-agents) | Anywhere (two agents) | One agent hands the user off to another, which calls the gateway | ✓ Hand-off between agents |
 | [`your-api`](your-api) | Anywhere | Gets a Hush token for your own API, which checks it | ✓ Token exchange |

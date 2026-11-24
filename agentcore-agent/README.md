@@ -117,10 +117,10 @@ agent. The provider must be your gateway's identity provider, and its tokens
 for this app must name users Hush knows.
 
 ```sh
-terraform -chdir=terraform apply ... -var idp_audience=<your app's audience>
+terraform -chdir=terraform apply ... -var idp_audience=<app audience>
 agentcore configure --entrypoint agent.py --name hush_example_agent \
   --region us-east-1 --requirements-file requirements.txt --disable-memory --non-interactive \
-  --authorizer-config '{"customJWTAuthorizer": {"discoveryUrl": "<your issuer>/.well-known/openid-configuration", "allowedAudience": ["<your app's audience>"]}}' \
+  --authorizer-config '{"customJWTAuthorizer": {"discoveryUrl": "<your issuer>/.well-known/openid-configuration", "allowedAudience": ["<app audience>"]}}' \
   --request-header-allowlist Authorization
 agentcore deploy -a hush_example_agent \
   --env HUSH_GATEWAY_URL=https://<gateway>/mcp --env MODEL_ID=us.anthropic.claude-sonnet-5

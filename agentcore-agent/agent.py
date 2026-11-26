@@ -11,6 +11,9 @@ The agent proves who it is with an AWS token for its runtime's IAM role
   JWT authorizer, or as {"user_token": ...} in the payload. With
   user_session_lifetime set on the agent, Hush also returns a refresh token,
   and the agent keeps acting for the user after the user's token expires.
+- For a user, with Okta Cross App Access (OKTA_ORG set): it first exchanges
+  the user's Okta token at Okta for an ID-JAG naming the agent, then gives
+  Hush the ID-JAG with its AWS token.
 """
 
 import functools
@@ -27,6 +30,9 @@ from strands.tools.mcp import MCPClient
 GATEWAY_URL = os.environ["HUSH_GATEWAY_URL"]  # https://<gateway>/mcp
 REGION = os.environ["AWS_REGION"]
 MODEL_ID = os.environ["MODEL_ID"]
+
+# Okta Cross App Access: your Okta org and the agent's client there
+OKTA_ORG = os.environ.get("OKTA_ORG")  # https://<org>.okta.com
 
 SYSTEM_PROMPT = """Your tools come through the Hush gateway. hush_list_apps
 shows the apps you can use; find an app's tools with hush_search_tools and
@@ -55,6 +61,27 @@ def aws_token() -> tuple[str, int]:
     return resp["WebIdentityToken"], 300
 
 
+def id_jag(user_token: str) -> str:
+    """Okta Cross App Access: the user's Okta token for an ID-JAG, Okta's
+    statement that this agent may act for the user at the gateway."""
+    resp = httpx.post(
+        f"{OKTA_ORG}/oauth2/v1/token",
+        data={
+            "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+            "subject_token": user_token,
+            "subject_token_type": "urn:ietf:params:oauth:token-type:access_token",
+            "requested_token_type": "urn:ietf:params:oauth:token-type:id-jag",
+            "audience": discover()[0],
+            "resource": GATEWAY_URL,
+            "client_id": os.environ["OKTA_CLIENT_ID"],
+            "client_secret": os.environ["OKTA_CLIENT_SECRET"],
+        },
+    )
+    if resp.status_code != 200:
+        raise RuntimeError(f"Okta refused ({resp.status_code}): {resp.text[:300]}")
+    return resp.json()["access_token"]
+
+
 def acting_for(user_token: str):
     """Gets Hush tokens for the agent acting for the user of `user_token`: by
     RFC 8693 token exchange, then with the refresh token Hush returns when the
@@ -65,6 +92,11 @@ def acting_for(user_token: str):
     def get_token() -> tuple[str, int]:
         if "refresh_token" in session:
             grant = {"grant_type": "refresh_token", "refresh_token": session["refresh_token"]}
+        elif OKTA_ORG:
+            grant = {
+                "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                "assertion": id_jag(user_token),
+            }
         else:
             grant = {
                 "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",

@@ -136,6 +136,26 @@ your provider's tokens name a shared API in `aud` (Okta, PingOne), set
 `user_tokens { clients = [...] }` (the app's client id) in place of
 `audiences`.
 
+### Or Okta Cross App Access
+
+With Okta at the door, Okta can also decide which agents may act for which
+users at the gateway (Cross App Access). The agent then exchanges the user's
+Okta token at Okta for an ID-JAG naming the agent, and gives Hush the ID-JAG
+with its AWS token (`id_jag()`). Set up Okta as the Okta guide in the Hush
+docs shows (Cross App Access, for your own agent), with the agent's
+`agent_id` (Terraform output) as the Client ID. Configure the door as above,
+with the authorization server and audience you set on the agent in Okta, and
+deploy with your Okta org and the agent's client there:
+
+```sh
+agentcore deploy -a hush_example_agent \
+  --env HUSH_GATEWAY_URL=https://<gateway>/mcp --env MODEL_ID=us.anthropic.claude-sonnet-5 \
+  --env OKTA_ORG=https://<org>.okta.com --env OKTA_CLIENT_ID=<id> --env OKTA_CLIENT_SECRET=<secret>
+```
+
+The agent needs no `user_tokens`: the ID-JAG names it. Keep the client secret
+in a secret store in production.
+
 ## Long-running work
 
 A user's token expires (an Entra token after about an hour), and with it the
